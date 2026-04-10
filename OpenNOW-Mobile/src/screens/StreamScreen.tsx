@@ -19,6 +19,7 @@ import {
   Alert,
   Platform,
 } from 'react-native';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { GameInfo, SessionInfo, StreamSettings, SessionAdInfo, MobileStreamDiagnostics } from '../types/index';
 import { getSessionService, getStreamingService, getSignalingService, getAuthService, getSettingsService } from '../api/index';
 import { TouchInputHandler, VirtualGamepadHandler } from '../utils/inputProtocol';
@@ -64,8 +65,12 @@ export const StreamScreen: React.FC<StreamScreenProps> = ({ game, onExit }) => {
   const settingsService = getSettingsService();
 
   useEffect(() => {
+    void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
     initializeSession();
-    return () => cleanup();
+    return () => {
+      cleanup();
+      void ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.DEFAULT);
+    };
   }, []);
 
   useEffect(() => {

@@ -3,7 +3,7 @@
     "name": "OpenNOW Mobile",
     "slug": "opennow-mobile",
     "version": "0.3.3",
-    "orientation": "landscape",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
