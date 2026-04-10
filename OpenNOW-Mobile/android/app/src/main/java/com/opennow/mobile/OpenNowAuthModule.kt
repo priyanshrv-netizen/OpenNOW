@@ -83,14 +83,13 @@ class OpenNowAuthModule(private val reactContext: ReactApplicationContext) :
     pendingVerifier = pkce.first
     pendingPort = port
 
-    val intent = Intent(activity, LoginActivity::class.java).apply {
-      putExtra(LoginActivity.EXTRA_AUTH_URL, authUrl)
-      putExtra(LoginActivity.EXTRA_REDIRECT_PORT, port)
-    }
+    val intent = Intent(activity, LoginActivity::class.java)
+    intent.putExtra(LoginActivity.EXTRA_AUTH_URL, authUrl)
+    intent.putExtra(LoginActivity.EXTRA_REDIRECT_PORT, port)
     activity.startActivityForResult(intent, REQUEST_CODE_LOGIN)
   }
 
-  override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
+  override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
     if (requestCode != REQUEST_CODE_LOGIN) return
 
     val promise = pendingPromise
@@ -129,7 +128,7 @@ class OpenNowAuthModule(private val reactContext: ReactApplicationContext) :
     }.start()
   }
 
-  override fun onNewIntent(intent: Intent?) = Unit
+  override fun onNewIntent(intent: Intent) = Unit
 
   private fun exchangeCodeForTokens(code: String, verifier: String, port: Int): JSONObject {
     val body = listOf(
