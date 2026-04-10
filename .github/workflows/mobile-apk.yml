@@ -1,0 +1,74 @@
+name: mobile-apk
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "OpenNOW-Mobile/**"
+      - ".github/workflows/mobile-apk.yml"
+
+concurrency:
+  group: mobile-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-android-debug:
+    runs-on: ubuntu-24.04
+
+    defaults:
+      run:
+        working-directory: OpenNOW-Mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: OpenNOW-Mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK components
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci --no-audit --progress=false
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Generate Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Write local.properties
+        working-directory: OpenNOW-Mobile/android
+        run: |
+          if [ -n "${ANDROID_SDK_ROOT}" ]; then
+            echo "sdk.dir=${ANDROID_SDK_ROOT}" > local.properties
+          elif [ -n "${ANDROID_HOME}" ]; then
+            echo "sdk.dir=${ANDROID_HOME}" > local.properties
+          else
+            echo "Android SDK path not found" >&2
+            exit 1
+          fi
+
+      - name: Build debug APK
+        working-directory: OpenNOW-Mobile/android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opennow-mobile-debug-apk
+          path: OpenNOW-Mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
