@@ -41,6 +41,15 @@ jobs:
       - name: Install Android SDK components
         uses: android-actions/setup-android@v3
 
+      - name: Install required Android SDK packages
+        run: |
+          yes | sdkmanager --licenses
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.1.12297006"
+
       - name: Install dependencies
         run: npm ci --no-audit --progress=false
 
