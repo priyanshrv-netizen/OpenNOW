@@ -39,6 +39,7 @@ test/
 
 package-lock.json
 !opennow-stable/package-lock.json
+!OpenNOW-Mobile/package-lock.json
 
 # AI Agent guidelines (local only)
 AGENTS.md
