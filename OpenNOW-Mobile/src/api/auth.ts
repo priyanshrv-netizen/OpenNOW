@@ -5,6 +5,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { decode as base64Decode } from 'base-64';
+import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import {
@@ -141,7 +143,7 @@ function decodeBase64Url(value: string): string {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const padding = normalized.length % 4;
   const padded = padding === 0 ? normalized : `${normalized}${'='.repeat(4 - padding)}`;
-  return Buffer.from(padded, 'base64').toString('utf8');
+  return base64Decode(padded);
 }
 
 function parseJwtPayload<T>(token: string): T | null {
@@ -175,15 +177,17 @@ function isNearExpiry(expiresAt: number | undefined, windowMs: number): boolean 
   return expiresAt - Date.now() < windowMs;
 }
 
-function generatePkce(): { verifier: string; challenge: string } {
+async function generatePkce(): Promise<{ verifier: string; challenge: string }> {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
   const verifier = Array.from({ length: 128 }, () =>
     chars.charAt(Math.floor(Math.random() * chars.length))
   ).join('');
 
-  // Generate challenge using SHA-256
-  const challenge = Buffer.from(verifier)
-    .toString('base64')
+  const challenge = (await Crypto.digestStringAsync(
+    Crypto.CryptoDigestAlgorithm.SHA256,
+    verifier,
+    { encoding: Crypto.CryptoEncoding.BASE64 }
+  ))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
@@ -290,7 +294,7 @@ class AuthService {
 
     this.selectedProvider = normalizeProvider(provider);
 
-    const { verifier, challenge } = generatePkce();
+    const { verifier, challenge } = await generatePkce();
     const state = Math.random().toString(36).substring(2, 15);
 
     const authUrl = new URL(AUTH_ENDPOINT);
