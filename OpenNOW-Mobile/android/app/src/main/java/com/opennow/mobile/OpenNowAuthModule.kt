@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import android.util.Base64
 import android.net.Uri
+import android.content.Context
 import com.facebook.react.bridge.ActivityEventListener
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
@@ -47,7 +48,7 @@ class OpenNowAuthModule(private val reactContext: ReactApplicationContext) :
 
   @ReactMethod
   fun login(providerIdpId: String, promise: Promise) {
-    val activity = currentActivity
+    val activity = reactContext.currentActivity
     if (activity == null) {
       promise.reject("NO_ACTIVITY", "Current activity is not available")
       return
@@ -83,7 +84,7 @@ class OpenNowAuthModule(private val reactContext: ReactApplicationContext) :
     pendingVerifier = pkce.first
     pendingPort = port
 
-    val intent = Intent(activity, LoginActivity::class.java)
+    val intent = Intent(activity as Context, LoginActivity::class.java)
     intent.putExtra(LoginActivity.EXTRA_AUTH_URL, authUrl)
     intent.putExtra(LoginActivity.EXTRA_REDIRECT_PORT, port)
     activity.startActivityForResult(intent, REQUEST_CODE_LOGIN)
