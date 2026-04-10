@@ -11,24 +11,27 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@react-native-async-storage/async-storage": "^1.23.1",
+    "@react-native-async-storage/async-storage": "^2.2.0",
     "expo": "~54.0.33",
     "expo-status-bar": "~3.0.9",
-    "expo-web-browser": "~14.1.6",
+    "expo-web-browser": "~15.0.10",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-webrtc": "^124.0.7"
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
-    "@types/react": "~19.2.14",
+    "@types/react": "~19.1.10",
     "typescript": "~5.9.3"
   },
   "private": true,
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "listUnknownPackages": false
+        "listUnknownPackages": false,
+        "exclude": [
+          "react-native-webrtc"
+        ]
       }
     }
   }
