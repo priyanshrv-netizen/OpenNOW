@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { decode as base64Decode } from 'base-64';
 import * as Crypto from 'expo-crypto';
 import * as WebBrowser from 'expo-web-browser';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import {
   AuthTokens,
   AuthUser,
@@ -119,6 +119,15 @@ interface SubscriptionResponse {
     }>;
   };
 }
+
+interface AndroidAuthModule {
+  login(providerIdpId: string): Promise<AuthTokens>;
+}
+
+const androidAuthModule: AndroidAuthModule | null =
+  Platform.OS === 'android' && NativeModules.OpenNowAuth
+    ? (NativeModules.OpenNowAuth as AndroidAuthModule)
+    : null;
 
 function defaultProvider(): LoginProvider {
   return {
@@ -294,41 +303,10 @@ class AuthService {
 
     this.selectedProvider = normalizeProvider(provider);
 
-    const { verifier, challenge } = await generatePkce();
-    const state = Math.random().toString(36).substring(2, 15);
-
-    const authUrl = new URL(AUTH_ENDPOINT);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('client_id', CLIENT_ID);
-    authUrl.searchParams.set('redirect_uri', 'opennow://oauth/callback');
-    authUrl.searchParams.set('scope', SCOPES);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('code_challenge', challenge);
-    authUrl.searchParams.set('code_challenge_method', 'S256');
-    authUrl.searchParams.set('idp_id', provider.idpId);
-
-    // Open browser for OAuth
-    const result = await WebBrowser.openAuthSessionAsync(authUrl.toString(), 'opennow://oauth/callback');
-
-    if (result.type !== 'success' || !result.url) {
-      throw new Error('OAuth flow cancelled or failed');
-    }
-
-    // Parse callback URL
-    const callbackUrl = new URL(result.url);
-    const code = callbackUrl.searchParams.get('code');
-    const returnedState = callbackUrl.searchParams.get('state');
-
-    if (!code) {
-      throw new Error('No authorization code received');
-    }
-
-    if (returnedState !== state) {
-      throw new Error('State mismatch - possible CSRF attack');
-    }
-
-    // Exchange code for tokens
-    const tokens = await this.exchangeCode(code, verifier);
+    const tokens =
+      Platform.OS === 'android' && androidAuthModule
+        ? await androidAuthModule.login(provider.idpId)
+        : await this.loginWithBrowser(provider.idpId);
 
     // Fetch user info
     const user = await this.fetchUserInfo(tokens.accessToken);
@@ -350,6 +328,38 @@ class AuthService {
     await this.persistSession();
 
     return this.session;
+  }
+
+  private async loginWithBrowser(providerIdpId: string): Promise<AuthTokens> {
+    const { verifier, challenge } = await generatePkce();
+    const state = Math.random().toString(36).substring(2, 15);
+
+    const authUrl = new URL(AUTH_ENDPOINT);
+    authUrl.searchParams.set('response_type', 'code');
+    authUrl.searchParams.set('client_id', CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', 'opennow://oauth/callback');
+    authUrl.searchParams.set('scope', SCOPES);
+    authUrl.searchParams.set('state', state);
+    authUrl.searchParams.set('code_challenge', challenge);
+    authUrl.searchParams.set('code_challenge_method', 'S256');
+    authUrl.searchParams.set('idp_id', providerIdpId);
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl.toString(), 'opennow://oauth/callback');
+    if (result.type !== 'success' || !result.url) {
+      throw new Error('OAuth flow cancelled or failed');
+    }
+
+    const callbackUrl = new URL(result.url);
+    const code = callbackUrl.searchParams.get('code');
+    const returnedState = callbackUrl.searchParams.get('state');
+    if (!code) {
+      throw new Error('No authorization code received');
+    }
+    if (returnedState !== state) {
+      throw new Error('State mismatch - possible CSRF attack');
+    }
+
+    return this.exchangeCode(code, verifier);
   }
 
   private async exchangeCode(code: string, verifier: string): Promise<AuthTokens> {

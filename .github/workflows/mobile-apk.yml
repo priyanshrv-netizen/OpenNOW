@@ -47,9 +47,6 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
-      - name: Generate Android project
-        run: npx expo prebuild --platform android --non-interactive
-
       - name: Write local.properties
         working-directory: OpenNOW-Mobile/android
         run: |

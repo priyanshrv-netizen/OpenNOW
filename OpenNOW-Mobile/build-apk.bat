@@ -43,18 +43,20 @@ if errorlevel 1 (
 )
 echo.
 
-echo [2/4] Generating Android project...
-call npx expo prebuild --platform android
-if errorlevel 1 (
-  echo [ERROR] expo prebuild failed.
+echo [2/4] Checking Android project...
+if not exist "android\gradlew.bat" (
+  echo Android project not found. Running expo prebuild once...
+  call npx expo prebuild --platform android
+  if errorlevel 1 (
+    echo [ERROR] expo prebuild failed.
+    exit /b 1
+  )
+)
+if not exist "android\gradlew.bat" (
+  echo [ERROR] android\gradlew.bat not found.
   exit /b 1
 )
 echo.
-
-if not exist "android\gradlew.bat" (
-  echo [ERROR] android\gradlew.bat not found after prebuild.
-  exit /b 1
-)
 
 echo [3/4] Building APK...
 pushd android
